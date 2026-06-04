@@ -1,22 +1,33 @@
-name: Deploy brott
+name: Deploy Shiny app
+run-name: Deploy ${{ github.event.repository.name }} → ${{ github.ref_name == 'publicera-intern' && 'intern' || 'publik' }}
 
 on:
   push:
-    branches: [ publicera ]
+    branches: [ publicera-publik, publicera-intern ]
   workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on: [ self-hosted, shiny ]
+    runs-on:
+      - self-hosted
+      - ${{ github.ref == 'refs/heads/publicera-intern' && 'shiny-deploy-intern' || 'shiny-deploy-publik' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Visa vilken server som deploy:as till
+        run: |
+          if [ "$GITHUB_REF" = "refs/heads/publicera-intern" ]; then
+            echo "Deploy till INTERN server (${{ github.event.repository.name }})"
+          else
+            echo "Deploy till PUBLIK server (${{ github.event.repository.name }})"
+          fi
+
       - name: Deploy app using server-side script
         run: |
           TEMP_DIR="${GITHUB_WORKSPACE}/app"
-          /usr/local/bin/shiny_deploy.sh brott "$TEMP_DIR"
+          /usr/local/bin/shiny_deploy.sh "${{ github.event.repository.name }}" "$TEMP_DIR"
 
       - name: Restart Shiny Server if available
         run: |
@@ -44,3 +55,4 @@ jobs:
           else
             echo "Ingen systemd-tjänst med namnet 'shiny-server' hittades. Hoppar över restart."
           fi
+
