@@ -139,6 +139,7 @@ server <- function(input, output, session) {
         tooltip_text = paste0(
           "<b>", municipality, "</b><br>",
           "Index ", max_year_t5, ": ", round(index_t5, 1), "<br>",
+          "Index ", max_year, ": ", round(value_t, 1), "<br>",
           "F\u00f6r\u00e4ndring: ", round(forandring, 1), " %"
         )
       )
@@ -331,13 +332,15 @@ server <- function(input, output, session) {
         axis_label   = strip_suffix(fraga),
         axis_label   = factor(axis_label, levels = strip_suffix(axis_order)),
         serie        = factor(serie, levels = c("vald_varde", "positiv", "negativ")),
-        tooltip_text = ifelse(
-          serie == "vald_varde",
-          paste0("<b>", strip_suffix(fraga), "</b><br>",
-                 "Index: ", round(value_raw, 1), "<br>",
-                 round(value), " % av v\u00e4gen mot b\u00e4sta ", ref_enhet),
-          paste0("<b>", strip_suffix(fraga), "</b><br>",
-                 "Index: ", round(value_raw, 1))
+        tooltip_text = case_when(
+          serie == "negativ" & value == 0 ~ NA_character_,
+          serie == "vald_varde" ~ paste0(
+            "<b>", strip_suffix(fraga), "</b><br>",
+            "Index: ", round(value_raw, 1), "<br>",
+            round(value), " % av v\u00e4gen mot b\u00e4sta ", ref_enhet),
+          TRUE ~ paste0(
+            "<b>", strip_suffix(fraga), "</b><br>",
+            "Index: ", round(value_raw, 1))
         )
       )
 
@@ -354,7 +357,15 @@ server <- function(input, output, session) {
 
     p <- ggplot(plot_df, aes(x = axis_label, y = value, group = serie, colour = serie)) +
       geom_polygon(fill = NA, linewidth = 0.8) +
+      # Referenspunkter (negativ saknar tooltip på 0-värden)
       geom_point_interactive(
+        data = plot_df %>% filter(serie != "vald_varde"),
+        aes(tooltip = tooltip_text, data_id = paste(serie, axis_label)),
+        size = 2.2
+      ) +
+      # Vald enhet ritas överst så den syns och kan hovras även i centrum
+      geom_point_interactive(
+        data = plot_df %>% filter(serie == "vald_varde"),
         aes(tooltip = tooltip_text, data_id = paste(serie, axis_label)),
         size = 2.2
       ) +
