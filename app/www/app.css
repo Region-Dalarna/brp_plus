@@ -1,0 +1,67 @@
+/* ============================================================
+   app.css – BRP+ Livskvalitetsindex
+   App-specifik styling som kompletterar regiondalarna_ruf.css
+   ============================================================ */
+
+/* ---- Övergripande layout ----------------------------------------- */
+.brp-layout {
+  padding: 16px 8px 24px;
+}
+
+/* ---- Kontrollpanel ------------------------------------------------ */
+.brp-controls {
+  padding-top: 4px;
+}
+
+.brp-controls .form-group {
+  margin-bottom: 0;
+}
+
+.brp-controls label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
+/* ---- Informationstext bredvid årvalet ----------------------------- */
+.brp-info-text {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.55;
+  padding-top: 8px;
+}
+
+/* ---- Diagramcell -------------------------------------------------- */
+.brp-diagram-cell {
+  width: 100%;
+  height: 65vh;
+  min-height: 420px;
+  margin-top: 12px;
+}
+
+.brp-diagram-cell .girafe_container_std {
+  width:  100% !important;
+  height: 100% !important;
+}
+
+/* ---- Årsinfo under filtren ------------------------------------ */
+.brp-ar-info {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: #f0f7fa;
+  border-left: 3px solid #158daf;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.brp-ar-label {
+  display: block;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 2px;
+}
+
+.brp-ar-value {
+  color: #158daf;
+  font-weight: 600;
+}
