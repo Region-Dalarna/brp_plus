@@ -1,5 +1,23 @@
 library(shiny)
+library(shinyWidgets)
 library(ggiraph)
+
+# Kort sökinstruktion som visas som mouseover (title) på sökbara listrutor
+sok_tips <- "Klicka för att öppna, skriv i sökrutan för att filtrera och klicka på ett alternativ för att välja."
+
+# Etikett med mouseover-tips
+sok_label <- function(text) {
+  tags$span(title = sok_tips, text)
+}
+
+# Gemensamma inställningar för sökbara listrutor
+sok_options <- pickerOptions(
+  liveSearch            = TRUE,
+  liveSearchNormalize   = TRUE,   # accent-okänslig sökning (å, ä, ö)
+  liveSearchPlaceholder = "Skriv för att söka…",
+  noneResultsText       = "Inga träffar för {0}",
+  size                  = 10
+)
 
 shinyUI(tagList(
 
@@ -46,29 +64,32 @@ shinyUI(tagList(
                        class = "brp-controls",
 
                        # Geografi-filter
-                       selectInput(
-                         inputId   = "val_geo",
-                         label     = "Välj län eller kommun:",
-                         choices   = NULL,
-                         selectize = TRUE
+                       pickerInput(
+                         inputId  = "val_geo",
+                         label    = sok_label("Välj län eller kommun:"),
+                         choices  = NULL,
+                         options  = sok_options,
+                         width    = "100%"
                        ),
 
                        # Nyckeltal-filter
-                       selectInput(
-                         inputId   = "val_fraga",
-                         label     = "Välj nyckeltal:",
-                         choices   = NULL,
-                         selectize = TRUE
+                       pickerInput(
+                         inputId  = "val_fraga",
+                         label    = sok_label("Välj nyckeltal:"),
+                         choices  = NULL,
+                         options  = sok_options,
+                         width    = "100%"
                        ),
 
                        # Läns-filter (visas bara i kommunvy)
                        conditionalPanel(
                          condition = "output.visa_lan_filter",
-                         selectInput(
-                           inputId   = "val_lan_markera",
-                           label     = "Markera kommuner i län:",
-                           choices   = NULL,
-                           selectize = TRUE
+                         pickerInput(
+                           inputId  = "val_lan_markera",
+                           label    = sok_label("Markera kommuner i län:"),
+                           choices  = NULL,
+                           options  = sok_options,
+                           width    = "100%"
                          )
                        ),
 
@@ -105,18 +126,19 @@ shinyUI(tagList(
                        width = 3,
                        class = "brp-controls",
 
-                       selectInput(
-                         inputId   = "spider_lan",
-                         label     = "Välj län eller kommun:",
-                         choices   = NULL,
-                         selectize = TRUE
+                       pickerInput(
+                         inputId  = "spider_lan",
+                         label    = sok_label("Välj län eller kommun:"),
+                         choices  = NULL,
+                         options  = sok_options,
+                         width    = "100%"
                        ),
 
-                       selectInput(
-                         inputId   = "spider_ar",
-                         label     = "Välj år:",
-                         choices   = NULL,
-                         selectize = TRUE
+                       pickerInput(
+                         inputId  = "spider_ar",
+                         label    = "Välj år:",
+                         choices  = NULL,
+                         width    = "100%"
                        ),
 
                        div(
