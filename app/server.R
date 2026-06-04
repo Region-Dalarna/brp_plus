@@ -114,14 +114,52 @@ server <- function(input, output, session) {
       need(nrow(df) > 0, "Ingen data för valt nyckeltal.")
     )
 
-    # Medel beräknas över de visade enheterna (samma typ)
-    riks_x <- mean(df$index_t5,   na.rm = TRUE)
-    riks_y <- mean(df$forandring, na.rm = TRUE)
+    # Sammansatt index? (bara dessa har "Regionindex"/"Kommunindex" i fraga)
+    ar_sammansatt <- str_detect(input$val_fraga, "Regionindex|Kommunindex")
 
-    # Länsprefix för vald enhet
+    # Vänd indikator? (högre verkligt värde är sämre) – bara relevant för enskilda
+    ar_vand <- !ar_sammansatt &&
+      isTRUE(!is.na(df$vand_varde[1]) && df$vand_varde[1] == 1)
+
+    # Bygg plottvärden:
+    #  - sammansatt index: normaliserat index (x) + förändring i indexpoäng (y)
+    #  - enskild indikator: verkligt värde (x) + procentuell förändring (y),
+    #    där förändringen negeras för vända indikatorer så att "upp = bättre"
+    if (ar_sammansatt) {
+      df <- df %>%
+        mutate(
+          x_plot = index_t5,
+          y_plot = value_t - index_t5,
+          har_varde = FALSE
+        )
+      x_lab  <- paste0("Index \u00e5r ", max_year_t5)
+      y_lab  <- paste0("F\u00f6r\u00e4ndring ", max_year_t5, "\u2013", max_year, " (indexpo\u00e4ng)")
+      y_enhet <- " p"
+    } else {
+      df <- df %>%
+        mutate(
+          x_plot = real_t5,
+          pct    = ifelse(real_t5 != 0, (real_t - real_t5) / real_t5 * 100, NA_real_),
+          y_plot = if (ar_vand) -pct else pct,
+          har_varde = !is.na(real_t5) & !is.na(real_t)
+        )
+      x_lab  <- paste0("V\u00e4rde \u00e5r ", max_year_t5)
+      y_lab  <- paste0("F\u00f6r\u00e4ndring ", max_year_t5, "\u2013", max_year, " (%)")
+      y_enhet <- " %"
+    }
+
+    df <- df %>% filter(is.finite(x_plot), is.finite(y_plot))
+
+    validate(
+      need(nrow(df) > 0, "Ingen data att visa för valt nyckeltal.")
+    )
+
+    # Medel över de visade enheterna
+    riks_x <- mean(df$x_plot, na.rm = TRUE)
+    riks_y <- mean(df$y_plot, na.rm = TRUE)
+
+    # Markeringar
     vald_lan_prefix <- substr(input$val_geo, 1, 2)
-
-    # Länsprefix för markerat län (kommunvy): 0020 -> "20"
     markerat_lan_prefix <- if (typ == "K" && !is.null(input$val_lan_markera)) {
       substr(input$val_lan_markera, 3, 4)
     } else {
@@ -136,38 +174,51 @@ server <- function(input, output, session) {
         } else {
           FALSE
         },
-        tooltip_text = paste0(
-          "<b>", municipality, "</b><br>",
-          "Index ", max_year_t5, ": ", round(index_t5, 1), "<br>",
-          "Index ", max_year, ": ", round(value_t, 1), "<br>",
-          "F\u00f6r\u00e4ndring: ", round(forandring, 1), " %"
-        )
+        tooltip_text = if (ar_sammansatt) {
+          paste0(
+            "<b>", municipality, "</b><br>",
+            "Index ", max_year_t5, ": ", round(index_t5, 1), "<br>",
+            "Index ", max_year, ": ", round(value_t, 1), "<br>",
+            "F\u00f6r\u00e4ndring: ", ifelse(y_plot >= 0, "+", ""), round(y_plot, 1), y_enhet
+          )
+        } else {
+          paste0(
+            "<b>", municipality, "</b><br>",
+            "V\u00e4rde ", max_year_t5, ": ", round(real_t5, 1), "<br>",
+            "V\u00e4rde ", max_year, ": ", round(real_t, 1), "<br>",
+            "F\u00f6r\u00e4ndring: ", ifelse(y_plot >= 0, "+", ""), round(y_plot, 1), y_enhet
+          )
+        }
       )
 
     # Axelgränser med marginal
-    x_min <- min(df$index_t5,   na.rm = TRUE)
-    x_max <- max(df$index_t5,   na.rm = TRUE)
-    y_min <- min(df$forandring, na.rm = TRUE)
-    y_max <- max(df$forandring, na.rm = TRUE)
+    x_min <- min(df$x_plot, na.rm = TRUE)
+    x_max <- max(df$x_plot, na.rm = TRUE)
+    y_min <- min(df$y_plot, na.rm = TRUE)
+    y_max <- max(df$y_plot, na.rm = TRUE)
     x_pad <- (x_max - x_min) * 0.08
     y_pad <- (y_max - y_min) * 0.12
+    if (!is.finite(x_pad) || x_pad == 0) x_pad <- 1
+    if (!is.finite(y_pad) || y_pad == 0) y_pad <- 1
 
-    etikett_x_vanster <- x_min - x_pad * 0.3
-    etikett_x_hoger   <- x_max + x_pad * 0.3
-    etikett_y_topp    <- y_max + y_pad * 0.55
-    etikett_y_botten  <- y_min - y_pad * 0.55
+    # Kvadrantetiketter: vänster = "efter/sämre startläge", höger = "före/bättre".
+    # För vända enskilda indikatorer vänds x-axeln, så det "sämre" (höga
+    # verkliga värden) hamnar visuellt till vänster precis som för övriga.
+    if (ar_vand) {
+      x_vanster <- x_max + x_pad * 0.3   # högt verkligt värde -> visuell vänster
+      x_hoger   <- x_min - x_pad * 0.3
+    } else {
+      x_vanster <- x_min - x_pad * 0.3
+      x_hoger   <- x_max + x_pad * 0.3
+    }
+    etikett_y_topp   <- y_max + y_pad * 0.55
+    etikett_y_botten <- y_min - y_pad * 0.55
 
-    p <- ggplot(df, aes(x = index_t5, y = forandring)) +
+    p <- ggplot(df, aes(x = x_plot, y = y_plot)) +
 
       # Referenslinjer
       geom_hline(yintercept = riks_y, colour = "#E8681A", linewidth = 0.9) +
       geom_vline(xintercept = riks_x, colour = "#F5C518", linewidth = 0.9) +
-
-      # Trendlinje
-      geom_smooth(aes(linetype = "Linjär trend"),
-                  method = "lm", formula = y ~ x, se = FALSE,
-                  colour = "#5b8db8", linewidth = 0.7) +
-      scale_linetype_manual(name = NULL, values = c("Linjär trend" = "dashed")) +
 
       # Referensetiketten
       annotate("label",
@@ -207,26 +258,24 @@ server <- function(input, output, session) {
       ) +
 
       # Kvadrantetiketter
-      annotate("label", x = etikett_x_vanster, y = etikett_y_topp,
+      annotate("label", x = x_vanster, y = etikett_y_topp,
                label = "Kommer ikapp", size = 3, fontface = "italic",
                fill = "#f5f5f5", colour = "#666", hjust = 0) +
-      annotate("label", x = etikett_x_hoger, y = etikett_y_topp,
+      annotate("label", x = x_hoger, y = etikett_y_topp,
                label = "Drar ifr\u00e5n", size = 3, fontface = "italic",
                fill = "#f5f5f5", colour = "#666", hjust = 1) +
-      annotate("label", x = etikett_x_vanster, y = etikett_y_botten,
+      annotate("label", x = x_vanster, y = etikett_y_botten,
                label = "Halkar efter", size = 3, fontface = "italic",
                fill = "#f5f5f5", colour = "#666", hjust = 0) +
-      annotate("label", x = etikett_x_hoger, y = etikett_y_botten,
+      annotate("label", x = x_hoger, y = etikett_y_botten,
                label = "Tappar fart", size = 3, fontface = "italic",
                fill = "#f5f5f5", colour = "#666", hjust = 1) +
 
-      # Axlar och titlar
-      scale_y_continuous(labels = scales::label_percent(scale = 1)) +
       labs(
         title = paste0(input$val_fraga, " \u2013 f\u00f6r\u00e4ndring ",
                        max_year_t5, "\u2013", max_year),
-        x     = paste0("Index \u00e5r ", max_year_t5),
-        y     = paste0("F\u00f6r\u00e4ndring ", max_year_t5, "\u2013", max_year, " (%)")
+        x = x_lab,
+        y = y_lab
       ) +
 
       theme_minimal(base_family = "Poppins") +
@@ -236,11 +285,15 @@ server <- function(input, output, session) {
         axis.text        = element_text(size = 9,  colour = "#555555"),
         panel.grid.major = element_line(colour = "#e8e8e8"),
         panel.grid.minor = element_blank(),
-        legend.position  = "bottom",
-        legend.text      = element_text(size = 9),
+        legend.position  = "none",
         plot.background  = element_rect(fill = "white", colour = NA),
         plot.margin      = margin(12, 20, 12, 12)
       )
+
+    # Vänd x-axeln för vända enskilda indikatorer (lågt verkligt värde = bättre = höger)
+    if (ar_vand) {
+      p <- p + scale_x_reverse()
+    }
 
     girafe(
       ggobj = p,
@@ -344,6 +397,27 @@ server <- function(input, output, session) {
         )
       )
 
+    # Slå ihop valda enhetens punkter som ligger på 0 (lägst) till EN punkt
+    # med en gemensam tooltip. Punkter > 0 behålls som egna.
+    vald_pts     <- plot_df %>% filter(serie == "vald_varde")
+    vald_nonzero <- vald_pts %>% filter(value > 0)
+    vald_zero    <- vald_pts %>% filter(value == 0)
+
+    if (nrow(vald_zero) > 0) {
+      vald_zero_comb <- vald_zero %>%
+        slice(1) %>%
+        mutate(
+          tooltip_text = paste0(
+            "<b>", vald_namn, " \u2013 l\u00e4gst i:</b><br>",
+            paste0(strip_suffix(vald_zero$fraga), ": ",
+                   round(vald_zero$value_raw, 1), collapse = "<br>")
+          )
+        )
+      vald_draw <- bind_rows(vald_nonzero, vald_zero_comb)
+    } else {
+      vald_draw <- vald_nonzero
+    }
+
     serie_labels <- c(
       vald_varde = vald_namn,
       positiv    = "Positiv referens",
@@ -363,10 +437,10 @@ server <- function(input, output, session) {
         aes(tooltip = tooltip_text, data_id = paste(serie, axis_label)),
         size = 2.2
       ) +
-      # Vald enhet ritas överst så den syns och kan hovras även i centrum
+      # Vald enhet ritas överst; punkter på 0 är hopslagna till en punkt
       geom_point_interactive(
-        data = plot_df %>% filter(serie == "vald_varde"),
-        aes(tooltip = tooltip_text, data_id = paste(serie, axis_label)),
+        data = vald_draw,
+        aes(tooltip = tooltip_text, data_id = paste(serie, axis_label, value)),
         size = 2.2
       ) +
       coord_radar() +
