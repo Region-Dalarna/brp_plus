@@ -5,6 +5,9 @@ library(ggrepel)
 library(DBI)
 library(dbplyr)
 
+# funktioner som behövs för att kunna ansluta till vår databas
+source("https://raw.githubusercontent.com/Region-Dalarna/funktioner/main/func_shinyappar.R", encoding = "utf-8", echo = FALSE)
+
 # ---- DB-uppkoppling ----
 con     <- shiny_uppkoppling_las("oppna_data")
 tbl_brp <- tbl(con, dbplyr::in_schema("tillvaxtverket", "brp_plus_normaliserad"))
