@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyWidgets)
 library(tidyverse)
 library(ggiraph)
 library(ggrepel)
@@ -16,12 +17,12 @@ coord_radar <- function(theta = "x", start = 0, direction = 1) {
 server <- function(input, output, session) {
 
   # ---- Fyll geo-filter ----
-  updateSelectInput(session, "val_geo",
+  updatePickerInput(session, "val_geo",
                     choices  = setNames(geo_choices$municipality_id, geo_choices$label),
                     selected = dalarna_id
   )
 
-  updateSelectInput(session, "val_fraga",
+  updatePickerInput(session, "val_fraga",
                     choices  = fraga_choices,
                     selected = livskvalitet_fraga
   )
@@ -55,7 +56,7 @@ server <- function(input, output, session) {
       nya_val[str_detect(nya_val, "Livskvalitet")][1]
     }
 
-    updateSelectInput(session, "val_fraga",
+    updatePickerInput(session, "val_fraga",
                       choices  = nya_val,
                       selected = nuvarande
     )
@@ -67,7 +68,7 @@ server <- function(input, output, session) {
         filter(lan_prefix == vald_lan_prefix) %>%
         pull(municipality_id)
 
-      updateSelectInput(session, "val_lan_markera",
+      updatePickerInput(session, "val_lan_markera",
                         choices  = setNames(lan_choices$municipality_id, lan_choices$municipality),
                         selected = if (length(forvalt_lan) > 0) forvalt_lan else lan_choices$municipality_id[1]
       )
@@ -162,8 +163,10 @@ server <- function(input, output, session) {
       geom_vline(xintercept = riks_x, colour = "#F5C518", linewidth = 0.9) +
 
       # Trendlinje
-      geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
-                  colour = "#5b8db8", linewidth = 0.7, linetype = "dashed") +
+      geom_smooth(aes(linetype = "Linjär trend"),
+                  method = "lm", formula = y ~ x, se = FALSE,
+                  colour = "#5b8db8", linewidth = 0.7) +
+      scale_linetype_manual(name = NULL, values = c("Linjär trend" = "dashed")) +
 
       # Referensetiketten
       annotate("label",
@@ -232,6 +235,8 @@ server <- function(input, output, session) {
         axis.text        = element_text(size = 9,  colour = "#555555"),
         panel.grid.major = element_line(colour = "#e8e8e8"),
         panel.grid.minor = element_blank(),
+        legend.position  = "bottom",
+        legend.text      = element_text(size = 9),
         plot.background  = element_rect(fill = "white", colour = NA),
         plot.margin      = margin(12, 20, 12, 12)
       )
@@ -257,12 +262,12 @@ server <- function(input, output, session) {
   # Spindeldiagram
   # ============================================================
 
-  updateSelectInput(session, "spider_lan",
+  updatePickerInput(session, "spider_lan",
                     choices  = setNames(spider_geo_choices$municipality_id, spider_geo_choices$label),
                     selected = spider_dalarna_id
   )
 
-  updateSelectInput(session, "spider_ar",
+  updatePickerInput(session, "spider_ar",
                     choices  = spider_ar,
                     selected = spider_ar[1]
   )
