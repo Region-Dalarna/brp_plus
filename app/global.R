@@ -5,9 +5,6 @@ library(ggrepel)
 library(DBI)
 library(dbplyr)
 
-# funktioner som behövs för att kunna ansluta till vår databas
-source("https://raw.githubusercontent.com/Region-Dalarna/funktioner/main/func_shinyappar.R", encoding = "utf-8", echo = FALSE)
-
 # ---- DB-uppkoppling ----
 con     <- shiny_uppkoppling_las("oppna_data")
 tbl_brp <- tbl(con, dbplyr::in_schema("tillvaxtverket", "brp_plus_normaliserad"))
@@ -15,7 +12,7 @@ tbl_brp <- tbl(con, dbplyr::in_schema("tillvaxtverket", "brp_plus_normaliserad")
 # ---- Hämta max-år som sträng (matchar DB-kolumnens typ) ----
 max_year_int <- tbl_brp %>%
   summarise(max_year = max(year, na.rm = TRUE)) %>%
-  pull(max_year) %>%
+  dplyr::pull(max_year) %>%
   as.integer()
 
 max_year    <- as.character(max_year_int)
@@ -27,21 +24,24 @@ brp_plus_raw <- tbl_brp %>%
   collect()
 
 # ---- Rensa och pivotera ----
+# Pivoterar både normaliserat index (varde_norm) och verkligt värde (value).
+# Verkligt värde saknas för sammansatta index (Regionindex m.fl.) -> NA där.
 brp_plus_df <- brp_plus_raw %>%
   filter(gender == "Båda könen") %>%
   select(municipality_id, municipality, municipality_type,
-         huvudomrade, fraga, year, varde_norm) %>%
+         huvudomrade, fraga, vand_varde, year, varde_norm, value) %>%
   distinct() %>%
-  pivot_wider(names_from = year, values_from = varde_norm) %>%
+  pivot_wider(names_from = year, values_from = c(varde_norm, value)) %>%
   select(
-    municipality_id, municipality, municipality_type, huvudomrade, fraga,
-    index_t5 = !!max_year_t5,
-    value_t  = !!max_year
+    municipality_id, municipality, municipality_type, huvudomrade, fraga, vand_varde,
+    index_t5 = !!paste0("varde_norm_", max_year_t5),
+    value_t  = !!paste0("varde_norm_", max_year),
+    real_t5  = !!paste0("value_", max_year_t5),
+    real_t   = !!paste0("value_", max_year)
   ) %>%
-  mutate(forandring = (value_t - index_t5) / index_t5 * 100) %>%
+  # Förändring i absoluta indexpoäng (för sammansatta index)
+  mutate(forandring = value_t - index_t5) %>%
   filter(
-    !is.nan(forandring),
-    !is.infinite(forandring),
     !is.na(index_t5),
     !is.na(value_t)
   )
@@ -67,25 +67,25 @@ geo_choices <- brp_plus_df %>%
 # Nyckeltal: fraga-värden sorterade per geografi-typ
 fraga_choices <- brp_plus_df %>%
   arrange(huvudomrade, fraga) %>%
-  pull(fraga) %>%
+  dplyr::pull(fraga) %>%
   unique()
 
 fraga_choices_lan <- brp_plus_df %>%
   filter(municipality_type == "L") %>%
   arrange(huvudomrade, fraga) %>%
-  pull(fraga) %>%
+  dplyr::pull(fraga) %>%
   unique()
 
 fraga_choices_kommun <- brp_plus_df %>%
   filter(municipality_type == "K") %>%
   arrange(huvudomrade, fraga) %>%
-  pull(fraga) %>%
+  dplyr::pull(fraga) %>%
   unique()
 
 dalarna_id <- geo_choices %>%
   filter(str_detect(municipality, "Dalarna")) %>%
   slice(1) %>%
-  pull(municipality_id)
+  dplyr::pull(municipality_id)
 
 livskvalitet_fraga <- fraga_choices[str_detect(fraga_choices, "Livskvalitet")][1]
 
@@ -131,4 +131,4 @@ spider_geo_choices <- spider_df %>%
 spider_dalarna_id <- spider_geo_choices %>%
   filter(municipality_type == "L", str_detect(municipality, "Dalarna")) %>%
   slice(1) %>%
-  pull(municipality_id)
+  dplyr::pull(municipality_id)
