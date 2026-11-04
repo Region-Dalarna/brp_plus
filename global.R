@@ -6,6 +6,10 @@ library(DBI)
 library(dbplyr)
 
 source("https://raw.githubusercontent.com/Region-Dalarna/funktioner/main/func_shinyappar.R", encoding = "utf-8", echo = FALSE)
+library(rdshinyappar)
+
+# ---- Telemetri (användningsstatistik, se Adminportalen) --------------------
+telemetry <- skapa_telemetry("brp_plus")
 
 # ---- DB-uppkoppling ----
 con     <- shiny_uppkoppling_las("oppna_data")

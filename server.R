@@ -15,6 +15,7 @@ coord_radar <- function(theta = "x", start = 0, direction = 1) {
 }
 
 server <- function(input, output, session) {
+  rdshinyappar::telemetri_server(telemetry, navigation_id = "flikval", forsta_flik = "Utveckling över tid")
 
   # ---- Fyll geo-filter ----
   updatePickerInput(session, "val_geo",

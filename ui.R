@@ -19,13 +19,16 @@ sok_options <- pickerOptions(
   size                  = 10
 )
 
+APP_BESKRIVNING <- "Experimentyta som visualiserar BRP+, ett livskvalitetsindex som kompletterar BNP/BRP med m\u00e5tt p\u00e5 bland annat h\u00e4lsa, milj\u00f6, trygghet."
+
 shinyUI(tagList(
 
   tags$head(
     tags$title("BRP+ \u2013 experimentyta"),
     tags$link(rel = "icon", type = "image/x-icon", href = "favicon.ico"),
     tags$link(rel = "stylesheet", type = "text/css", href = "regiondalarna_ruf.css"),
-    tags$link(rel = "stylesheet", type = "text/css", href = "app.css")
+    tags$link(rel = "stylesheet", type = "text/css", href = "app.css"),
+    telemetri_ui(telemetry)
   ),
 
   # ---- Header ----
@@ -39,8 +42,7 @@ shinyUI(tagList(
       href = "https://www.regiondalarna.se/verksamhet/regional-utveckling/statistik-och-rapporter/",
       target = "_blank",
       class = "rd-header__right",
-      tags$img(src = "logo_liggande_fri_vit.png", alt = "Region Dalarna"),
-      tags$span("Samhällsanalys")
+      tags$img(src = "logo_liggande_fri_vit.png", alt = "Region Dalarna")
     )
   ),
 
@@ -48,6 +50,7 @@ shinyUI(tagList(
   fluidPage(
 
     tabsetPanel(
+      id = "flikval",
 
       # ----------------------------
       # Flik 1: Utveckling över tid
