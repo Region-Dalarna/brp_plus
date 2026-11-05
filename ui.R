@@ -21,10 +21,12 @@ sok_options <- pickerOptions(
 
 APP_BESKRIVNING <- "Experimentyta som visualiserar BRP+, ett livskvalitetsindex som kompletterar BNP/BRP med m\u00e5tt p\u00e5 bland annat h\u00e4lsa, milj\u00f6, trygghet."
 
+APP_TITEL <- "BRP+ \u2013 experimentyta f\u00f6r visualiseringar"
+
 shinyUI(tagList(
 
   tags$head(
-    tags$title("BRP+ \u2013 experimentyta"),
+    tags$title(APP_TITEL),
     tags$link(rel = "icon", type = "image/x-icon", href = "favicon.ico"),
     tags$link(rel = "stylesheet", type = "text/css", href = "regiondalarna_ruf.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "app.css"),
@@ -36,7 +38,7 @@ shinyUI(tagList(
     class = "rd-header",
     div(
       class = "rd-header__title",
-      "BRP+ \u2013 experimentyta för visualiseringar"
+      APP_TITEL
     ),
     tags$a(
       href = "https://www.regiondalarna.se/verksamhet/regional-utveckling/statistik-och-rapporter/",
@@ -48,6 +50,7 @@ shinyUI(tagList(
 
   # ---- Huvudinnehåll ----
   fluidPage(
+    title = APP_TITEL,  # webbläsarflikens rubrik
 
     tabsetPanel(
       id = "flikval",
