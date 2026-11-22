@@ -5,7 +5,8 @@ library(ggrepel)
 library(DBI)
 library(dbplyr)
 
-source("https://raw.githubusercontent.com/Region-Dalarna/funktioner/main/func_shinyappar.R", encoding = "utf-8", echo = FALSE)
+library(RPostgres)
+library(sf)
 library(rdshinyappar)
 
 # ---- Telemetri (användningsstatistik, se Adminportalen) --------------------
